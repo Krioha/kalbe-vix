@@ -28,10 +28,10 @@ warnings.filterwarnings('ignore')
 # dft= Dataframe Transaction 
 
 # %%
-dfc=pd.read_csv("D:\Pelatihan\PBA\Portofolio\Case Study Data Scientist\Case Study - Customer.csv", sep=';')
-dfp=pd.read_csv("D:\Pelatihan\PBA\Portofolio\Case Study Data Scientist\Case Study - Product.csv", sep=';' )
-dft=pd.read_csv("D:\Pelatihan\PBA\Portofolio\Case Study Data Scientist\Case Study - Transaction.csv", sep=';')
-dfs=pd.read_csv("D:\Pelatihan\PBA\Portofolio\Case Study Data Scientist\Case Study - Store.csv", sep=';')
+dfc=pd.read_csv("D:\Pelatihan\PBA\Kalbe DS\Portofolio\Case Study Data Scientist\Case Study - Customer.csv", sep=';')
+dfp=pd.read_csv("D:\Pelatihan\PBA\Kalbe DS\Portofolio\Case Study Data Scientist\Case Study - Product.csv", sep=';' )
+dft=pd.read_csv("D:\Pelatihan\PBA\Kalbe DS\Portofolio\Case Study Data Scientist\Case Study - Transaction.csv", sep=';')
+dfs=pd.read_csv("D:\Pelatihan\PBA\Kalbe DS\Portofolio\Case Study Data Scientist\Case Study - Store.csv", sep=';')
 
 # %%
 print(dfc.head())
@@ -272,22 +272,105 @@ stepwise_fit=auto_arima(daily_qty,trace=True,suppress_warnings=True)
 stepwise_fit.summary()
 
 # %%
+from statsmodels.tsa.stattools import adfuller
+
+def test_stationarity(timeseries):
+    
+    #Determing rolling statistics
+    rolmean = timeseries.rolling(window=12).mean()
+    rolstd = timeseries.rolling(window=12).std()
+
+    #Plot rolling statistics:
+    plt.figure(figsize=(20,8))
+    orig = plt.plot(timeseries, color='blue',label='Original')
+    mean = plt.plot(rolmean, color='red', label='Rolling Mean')
+    std = plt.plot(rolstd, color='black', label = 'Rolling Std')
+    plt.legend(loc='best')
+    plt.title('Rolling Mean & Standard Deviation')
+    plt.show(block=False)
+    
+    #Perform Dickey-Fuller test:
+    print('Results of Dickey-Fuller Test:') 
+    dftest = adfuller(timeseries, autolag='AIC')
+    dfoutput = pd.Series(dftest[0:4], index=['Test Statistic','p-value','#Lags Used','Number of Observations Used'])
+    for key,value in dftest[4].items():
+        dfoutput['Critical Value (%s)'%key] = value
+    print(dfoutput)
+
+
+# %%
+test_stationarity(daily_qty)
+
+# %%
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_squared_error
+from mango import scheduler, Tuner
+
+def arima_objective_function(args_list):
+    global data_values
+    
+    params_evaluated = []
+    results = []
+    
+    for params in args_list:
+        try:
+            p,d,q = params['p'],params['d'], params['q']
+            
+            model = ARIMA(data_values, order=(p,d,q))
+            predictions = model.fit()
+            mse = mean_squared_error(data_values, predictions.fittedvalues)   
+            params_evaluated.append(params)
+            results.append(mse)
+        except:
+            #print(f"Exception raised for {params}")
+            #pass 
+            params_evaluated.append(params)
+            results.append(1e5)
+        
+        #print(params_evaluated, mse)
+    return params_evaluated, results
+
+param_space = dict(p= range(0, 15),
+                   d= range(0, 5),
+                   q =range(0, 5)
+                  )
+
+conf_Dict = dict()
+conf_Dict['num_iteration'] = 200
+data_values = daily_qty
+tuner = Tuner(param_space, arima_objective_function, conf_Dict)
+results = tuner.minimize()
+
+# %%
+print('best parameters:', results['best_params'])
+print('best loss:', results['best_objective'])
+
+
+# %%
 from statsmodels.tsa.arima.model import ARIMA
 
 # Membuat model ARIMA
-order = (15,2,1)  # Nilai ini didapat dari pengujian autoarima terbaik
+order = (13,0,2)  # Nilai ini didapat dari pengujian autoarima terbaik
 model = ARIMA(train_data, order=order)
 model_fit = model.fit()
 
 # Melakukan prediksi pada data uji
-predictions = model_fit.forecast(steps=len(test_data))
+predictionGS = model_fit.forecast(steps=len(test_data))
+
+order = (4,1,1)  # Nilai ini didapat dari pengujian autoarima terbaik
+model = ARIMA(train_data, order=order)
+model_fit = model.fit()
+
+predictionAA = model_fit.forecast(steps=len(test_data))
 
 # %%
 # Menampilkan hasil prediksi
 plt.figure(figsize=(20,8))
 plt.plot(train_data.index, train_data.values, label='Data Train')
 plt.plot(test_data.index, test_data.values, label='Data Test')
-plt.plot(test_data.index, predictions, label='Predicted',linestyle='dashed', color='black')
+plt.plot(test_data.index, predictionGS, label='Predicted Grid Search',linestyle='dashed', color='black')
+plt.plot(test_data.index, predictionAA, label='Predicted Auto Arima',linestyle='dashed', color='red')
+
 plt.xlabel('Date')
 plt.ylabel('Total Quantity')
 plt.title('ARIMA Time Series Regression')
@@ -295,9 +378,40 @@ plt.legend()
 plt.show()
 
 # %%
-print('MAE:', mean_absolute_error(test_data.values, predictions))
-print('RMSE:', sqrt(mean_squared_error(test_data.values, predictions)))
-print('MAPE:', mean_absolute_percentage_error(test_data.values, predictions))
+import pandas as pd
+
+# create a pandas table with dates from January 1 to January 31, 2023
+date_table = pd.date_range(start='2023-01-01', end='2023-01-31', freq='D')
+
+# print the date table
+print(date_table)
+
+
+# %%
+order = (13,0,2)  # Nilai ini didapat dari pengujian autoarima terbaik
+model = ARIMA(train_data, order=order)
+model_fit = model.fit()
+PredictionJan=model_fit.forecast(steps=len(date_table))
+
+# %%
+plt.figure(figsize=(20,8))
+plt.plot(date_table, PredictionJan, label='Predicted Sale On January 2023', color='orange')
+plt.axhline(y=np.nanmean(PredictionJan),label='Average')
+plt.xlabel('Date')
+plt.ylabel('Total Quantity')
+plt.title('ARIMA Time Series Forecast')
+plt.legend()
+plt.show()
+#print average monthly sales
+
+# %%
+print('MAE Grid Search:', mean_absolute_error(test_data.values, predictionGS))
+print('RMSE Grid Search:', sqrt(mean_squared_error(test_data.values,  predictionGS)))
+print('MAPE Grid Search:', mean_absolute_percentage_error(test_data.values,  predictionGS))
+
+print('MAE Auto Arima:', mean_absolute_error(test_data.values, predictionAA))
+print('RMSE Auto Arima:', sqrt(mean_squared_error(test_data.values,  predictionAA)))
+print('MAPE Auto Arima:', mean_absolute_percentage_error(test_data.values,  predictionAA))
 
 # %% [markdown]
 # # Random Forest Regression
@@ -421,6 +535,11 @@ cluster_data.head()
 
 # %%
 cluster_data.value_counts('Cluster')
+
+# %%
+cluster_summary = cluster_data.groupby('Cluster').agg({'TransactionID': 'mean', 'Qty': 'mean', 'TotalAmount': 'mean'})
+print(cluster_summary)
+
 
 # %%
 plt.figure(figsize=(10,8))

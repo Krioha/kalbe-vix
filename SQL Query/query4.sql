@@ -1,5 +1,5 @@
 select product."Product Name" as "Nama Produk" ,
-count(transaction.storeid ) as "Total Amount"
+sum(transaction.totalamount ) as "Total Amount"
 from product
 inner join transaction
 on product.productid=transaction.productid 
