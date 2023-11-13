@@ -19,15 +19,28 @@ Proyek ini memiliki potensi untuk ditingkatkan dengan cara berikut:
 - Hyperparameter Tuning: Melakukan hyperparameter tuning pada algoritma yang digunakan saat ini untuk mencapai hasil yang lebih optimal.
 
 # Hasil dasboard Tableau
-
-![TableauDasboard](https://github.com/Krioha/kalbe-vix/assets/93811161/80851106-8657-4f71-b29a-dea8b25f0a43)
+![TableauDasboard](https://github.com/Krioha/kalbe-vix/assets/93811161/8c635482-46c0-43e4-b662-eecf350e6c3d)
 
 # Hasil Time series Arima
-![image](https://github.com/Krioha/kalbe-vix/assets/93811161/a50fdab5-7e49-4200-876b-af3192e0261c)
+![image](https://github.com/Krioha/kalbe-vix/assets/93811161/c216e02d-172b-40a9-951e-2e811ef3b1b5)
 
-- MAE: 11.78
-- RMSE: 15.28
-- MAPE: 23.96%
+
+Performance Result \
+Grid Search
+- MAE: 12.78
+- RMSE: 15.21
+- MAPE: 32.02%
+\
+\
+Auto ARIMA 
+- MAE: 11.86
+- RMSE: 14.17
+- MAPE: 29.39%
+
+# Prediksi 1 Bulan kedepan
+![image](https://github.com/Krioha/kalbe-vix/assets/93811161/6d32e364-f8d7-498d-a917-032243c8030b)
+
+
 
 # Hasil Clustering
 ![image](https://github.com/Krioha/kalbe-vix/assets/93811161/912e139f-78c3-4917-8302-01af0c5191b1)
